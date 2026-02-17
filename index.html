@@ -1,0 +1,251 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Andromeda</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- MediaPipe (Global Scripts for reliability) -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+      crossorigin="anonymous"
+    ></script>
+    <!-- Three.js & PostProcessing -->
+    <script
+      async=""
+      src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"
+    ></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body class="antialiased font-sans text-sci-accent selection:bg-white/20">
+    <!-- Post-FX -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <!-- Main Canvas -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- Star Field -->
+    <div class="star-field" id="star-field"></div>
+
+    <!-- Nebula Glow -->
+    <div class="nebula-container">
+      <div class="nebula-circle-1"></div>
+      <div class="nebula-circle-2"></div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="absolute top-0 left-0 w-full z-20 pointer-events-none">
+      <div
+        class="flex items-center justify-between w-full max-w-[1280px] mx-auto px-6 md:px-10 py-4"
+      >
+        <!-- Logo -->
+        <a href="#" class="pointer-events-auto flex items-center shrink-0">
+          <img src="assets/logo.svg" alt="Andrómeda" class="h-10 w-auto" />
+        </a>
+
+        <!-- Nav Links (center) -->
+        <nav
+          class="hidden md:flex nav-glass rounded-full px-6 py-3 pointer-events-auto"
+        >
+          <ul class="flex items-center gap-8">
+            <li>
+              <a
+                href="#"
+                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                >Inicio</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                >Servicios</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                >Productos</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                >Aliados</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                >Contacto</a
+              >
+            </li>
+          </ul>
+        </nav>
+
+        <!-- CTA Button (right) -->
+        <a
+          href="#"
+          class="hidden md:flex nav-cta-glass rounded-full px-4 py-2 items-center justify-center pointer-events-auto transition-all duration-300"
+        >
+          <span class="text-white text-base font-medium"
+            >Diagnóstico sin costo</span
+          >
+        </a>
+
+        <!-- Mobile menu button -->
+        <button
+          class="md:hidden pointer-events-auto text-white"
+          aria-label="Menu"
+        >
+          <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <div
+      class="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none px-6"
+    >
+      <div
+        class="relative z-10 flex flex-col items-center text-center max-w-[910px] mx-auto mt-16 md:mt-0"
+      >
+        <!-- Headline -->
+        <h1
+          class="hero-title text-4xl sm:text-5xl md:text-[72px] font-semibold leading-[1.1] md:leading-[72px] tracking-[-3.6px] pb-2"
+        >
+          Transforma tu operación con<br />
+          <span class="hero-subtitle-line">tecnología a la medida</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p
+          class="mt-6 md:mt-7 text-lg md:text-xl text-white/70 max-w-[684px] font-medium leading-7 tracking-[-0.5px]"
+        >
+          Empezamos con un
+          <span class="font-semibold text-white">diagnóstico sin costo</span>
+          para detectar cuellos de botella y proponerte un plan por fases que
+          <span class="font-semibold text-white">reduzca costos</span> y mejore
+          el control.
+        </p>
+
+        <!-- CTA Button -->
+        <div class="mt-8 md:mt-10 pointer-events-auto">
+          <a
+            href="#"
+            class="cta-btn inline-flex items-center gap-3 px-8 py-3.5 rounded-full text-white text-sm font-medium transition-all duration-300"
+          >
+            Solicitar diagnóstico sin costo
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Client Logos Section -->
+      <div
+        class="absolute bottom-8 md:bottom-12 left-0 w-full flex flex-col items-center gap-6 px-6"
+      >
+        <p
+          class="text-white text-sm md:text-xl font-medium tracking-[-0.5px] text-center max-w-4xl"
+        >
+          Clientes que ya empezaron a reducir costos y ganar control operativo
+          con tecnología a la medida.
+        </p>
+        <div
+          class="logo-carousel-container w-full max-w-[1352px] hidden md:block"
+        >
+          <div class="logo-track">
+            <!-- Original Set -->
+            <img src="assets/Logo.png" alt="Mayagüez" />
+            <img src="assets/Logo-1.png" alt="BrillAseo" />
+            <img src="assets/Logo-2.png" alt="Talentum" />
+            <img src="assets/Logo-3.png" alt="Fundación Ave Fénix" />
+            <img src="assets/Logo-4.png" alt="La Montaña Agromercados" />
+            <img src="assets/Logo-5.png" alt="Zarzal Valle Alcaldía" />
+            <img src="assets/Logo-6.png" alt="TaxCentral" />
+            <img src="assets/Logo-7.png" alt="Orthoplan" />
+            <img src="assets/Logo-8.png" alt="Guacarí" />
+
+            <!-- Duplicate Set for Infinite Loop -->
+            <img src="assets/Logo.png" alt="Mayagüez" />
+            <img src="assets/Logo-1.png" alt="BrillAseo" />
+            <img src="assets/Logo-2.png" alt="Talentum" />
+            <img src="assets/Logo-3.png" alt="Fundación Ave Fénix" />
+            <img src="assets/Logo-4.png" alt="La Montaña Agromercados" />
+            <img src="assets/Logo-5.png" alt="Zarzal Valle Alcaldía" />
+            <img src="assets/Logo-6.png" alt="TaxCentral" />
+            <img src="assets/Logo-7.png" alt="Orthoplan" />
+            <img src="assets/Logo-8.png" alt="Guacarí" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI: Camera Preview (Hidden but functional) -->
+    <video
+      id="input-video"
+      class="fixed top-0 left-0 w-1 h-1 opacity-0 pointer-events-none z-[-1]"
+      playsinline=""
+    ></video>
+
+    <!-- Hidden elements for JS compatibility -->
+    <div id="hand-status" class="hidden"></div>
+    <div id="sim-mode" class="hidden">NEBULA CLOUD</div>
+    <div id="particle-count" class="hidden">120K NODES</div>
+    <button id="btn-audio" class="hidden"></button>
+    <button id="btn-cam" class="hidden"></button>
+    <div id="cam-active-indicator" class="hidden"></div>
+    <button id="btn-rec" class="hidden"></button>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
