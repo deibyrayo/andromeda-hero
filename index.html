@@ -79,41 +79,41 @@
 
         <!-- Nav Links (center) -->
         <nav
-          class="hidden md:flex nav-glass rounded-full px-6 py-3 pointer-events-auto"
+          class="hidden md:flex nav-glass rounded-full px-4 lg:px-6 py-3 pointer-events-auto"
         >
-          <ul class="flex items-center gap-8">
+          <ul class="flex items-center gap-4 lg:gap-8">
             <li>
               <a
                 href="#"
-                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                class="text-white text-sm lg:text-base font-medium hover:text-white/80 transition-colors whitespace-nowrap"
                 >Inicio</a
               >
             </li>
             <li>
               <a
                 href="#"
-                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                class="text-white text-sm lg:text-base font-medium hover:text-white/80 transition-colors whitespace-nowrap"
                 >Servicios</a
               >
             </li>
             <li>
               <a
                 href="#"
-                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                class="text-white text-sm lg:text-base font-medium hover:text-white/80 transition-colors whitespace-nowrap"
                 >Productos</a
               >
             </li>
             <li>
               <a
                 href="#"
-                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                class="text-white text-sm lg:text-base font-medium hover:text-white/80 transition-colors whitespace-nowrap"
                 >Aliados</a
               >
             </li>
             <li>
               <a
                 href="#"
-                class="text-white text-base font-medium hover:text-white/80 transition-colors"
+                class="text-white text-sm lg:text-base font-medium hover:text-white/80 transition-colors whitespace-nowrap"
                 >Contacto</a
               >
             </li>
@@ -123,41 +123,92 @@
         <!-- CTA Button (right) -->
         <a
           href="#"
-          class="hidden md:flex nav-cta-glass rounded-full px-4 py-2 items-center justify-center pointer-events-auto transition-all duration-300"
+          class="hidden lg:flex nav-cta-glass rounded-full px-4 py-2 items-center justify-center pointer-events-auto transition-all duration-300"
         >
-          <span class="text-white text-base font-medium"
+          <span
+            class="text-white text-sm lg:text-base font-medium whitespace-nowrap"
             >Diagnóstico sin costo</span
           >
         </a>
 
         <!-- Mobile menu button -->
         <button
+          id="mobile-menu-btn"
           class="md:hidden pointer-events-auto text-white"
           aria-label="Menu"
         >
-          <i data-lucide="menu" class="w-6 h-6"></i>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="4" x2="20" y1="12" y2="12"></line>
+            <line x1="4" x2="20" y1="6" y2="6"></line>
+            <line x1="4" x2="20" y1="18" y2="18"></line>
+          </svg>
         </button>
       </div>
     </header>
 
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="mobile-menu">
+      <button
+        id="mobile-menu-close"
+        class="mobile-menu-close"
+        aria-label="Cerrar menú"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+      <a href="#">Inicio</a>
+      <a href="#">Servicios</a>
+      <a href="#">Productos</a>
+      <a href="#">Aliados</a>
+      <a href="#">Contacto</a>
+      <a
+        href="#"
+        class="cta-btn inline-flex items-center gap-2 px-6 py-3 rounded-full !text-base !font-medium"
+        >Diagnóstico sin costo</a
+      >
+    </div>
+
     <!-- Hero Section -->
     <div
-      class="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none px-6"
+      class="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none px-4 sm:px-6"
     >
       <div
-        class="relative z-10 flex flex-col items-center text-center max-w-[910px] mx-auto mt-16 md:mt-0"
+        class="relative z-10 flex flex-col items-center text-center max-w-[910px] mx-auto mt-10 sm:mt-16 md:mt-0"
       >
         <!-- Headline -->
         <h1
-          class="hero-title text-4xl sm:text-5xl md:text-[72px] font-semibold leading-[1.1] md:leading-[72px] tracking-[-3.6px] pb-2"
+          class="hero-title text-[28px] sm:text-[36px] md:text-[52px] lg:text-[72px] font-semibold leading-[1.15] sm:leading-[1.12] md:leading-[1.1] lg:leading-[72px] tracking-[-1.2px] sm:tracking-[-2px] md:tracking-[-2.8px] lg:tracking-[-3.6px] pb-2"
         >
-          Transforma tu operación con<br />
+          Transforma tu operación con
+          <br class="hidden sm:inline" />
           <span class="hero-subtitle-line">tecnología a la medida</span>
         </h1>
 
         <!-- Subtitle -->
         <p
-          class="mt-6 md:mt-7 text-lg md:text-xl text-white/70 max-w-[684px] font-medium leading-7 tracking-[-0.5px]"
+          class="mt-4 sm:mt-6 md:mt-7 text-[15px] sm:text-base md:text-lg lg:text-xl text-white/70 max-w-[684px] font-medium leading-[1.6] sm:leading-7 tracking-[-0.3px] sm:tracking-[-0.5px] px-2 sm:px-0"
         >
           Empezamos con un
           <span class="font-semibold text-white">diagnóstico sin costo</span>
@@ -167,10 +218,10 @@
         </p>
 
         <!-- CTA Button -->
-        <div class="mt-8 md:mt-10 pointer-events-auto">
+        <div class="mt-6 sm:mt-8 md:mt-10 pointer-events-auto">
           <a
             href="#"
-            class="cta-btn inline-flex items-center gap-3 px-8 py-3.5 rounded-full text-white text-sm font-medium transition-all duration-300"
+            class="cta-btn inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-3.5 rounded-full text-white text-[13px] sm:text-sm font-medium transition-all duration-300"
           >
             Solicitar diagnóstico sin costo
             <svg
@@ -192,17 +243,15 @@
 
       <!-- Client Logos Section -->
       <div
-        class="absolute bottom-8 md:bottom-12 left-0 w-full flex flex-col items-center gap-6 px-6"
+        class="absolute bottom-6 sm:bottom-10 md:bottom-12 left-0 w-full flex flex-col items-center gap-3 sm:gap-6 px-4 sm:px-6 pointer-events-auto"
       >
         <p
-          class="text-white text-sm md:text-xl font-medium tracking-[-0.5px] text-center max-w-4xl"
+          class="text-white text-[13px] sm:text-sm md:text-lg lg:text-xl font-medium tracking-[-0.3px] sm:tracking-[-0.5px] text-center max-w-[280px] sm:max-w-lg md:max-w-4xl leading-[1.4] sm:leading-normal"
         >
           Clientes que ya empezaron a reducir costos y ganar control operativo
           con tecnología a la medida.
         </p>
-        <div
-          class="logo-carousel-container w-full max-w-[1352px] hidden md:block"
-        >
+        <div class="logo-carousel-container w-full max-w-[1352px]">
           <div class="logo-track">
             <!-- Original Set -->
             <img src="assets/Logo.png" alt="Mayagüez" />

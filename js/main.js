@@ -35,103 +35,108 @@ const STATE = {
   colorPalette: 0,
 };
 
-// --- SCENE SETUP ---
-const container = document.getElementById("canvas-container");
-const renderer = new THREE.WebGLRenderer({
-  antialias: false,
-  powerPreference: "high-performance",
-  alpha: false,
-  stencil: false,
-  depth: true,
-});
+// Expose state for debugging
+window.ANDROMEDA_STATE = STATE;
 
-// Optimize pixel ratio for smoothness
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping = THREE.CineonToneMapping;
-renderer.toneMappingExposure = 1.2;
-container.appendChild(renderer.domElement);
+// --- MAIN EXECUTION ---
+(async function main() {
+  try {
+    console.log("🚀 Andromeda Engine Starting...");
 
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(CONFIG.bgColor, 0.015);
-scene.background = new THREE.Color(CONFIG.bgColor);
+    // --- VARIABLES DECLARATION ---
+    let renderer, scene, camera, composer, finalPass, material, clock;
+    let palettes;
+    let analyser, dataArray, audioContext;
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  200,
-);
-camera.position.z = CONFIG.cameraZ;
+    // 1. Container Check
+    const container = document.getElementById("canvas-container");
+    if (!container) throw new Error("#canvas-container not found in DOM");
 
-// --- POST PROCESSING ---
-const renderScene = new RenderPass(scene, camera);
+    // 2. Renderer Setup
+    renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      powerPreference: "high-performance",
+      alpha: false,
+      stencil: false,
+      depth: true,
+    });
 
-// Smoother, dreamier bloom
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  1.5,
-  0.4,
-  0.85,
-);
-bloomPass.threshold = 0.1;
-bloomPass.strength = 1.0;
-bloomPass.radius = 0.8;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.CineonToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+    console.log("✅ Renderer attached");
 
-// Custom Shader for Chromatic Aberration & Grain
-const outputShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    uTime: { value: 0 },
-    uRGBShift: { value: 0.002 },
-  },
-  vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-  fragmentShader: `
-            uniform sampler2D tDiffuse;
-            uniform float uTime;
-            uniform float uRGBShift;
-            varying vec2 vUv;
-            
-            float random(vec2 p) {
-                return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453);
-            }
+    // 3. Scene Setup
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(CONFIG.bgColor, 0.015);
+    scene.background = new THREE.Color(CONFIG.bgColor);
 
-            void main() {
-                vec2 uv = vUv;
-                
-                // Chromatic aberration at edges
-                float dist = distance(uv, vec2(0.5));
-                vec2 offset = (uv - 0.5) * dist * uRGBShift;
-                
-                float r = texture2D(tDiffuse, uv + offset).r;
-                float g = texture2D(tDiffuse, uv).g;
-                float b = texture2D(tDiffuse, uv - offset).b;
-                
-                vec3 color = vec3(r, g, b);
-                
-                // Subtle film grain
-                float noise = (random(uv + uTime) - 0.5) * 0.04;
-                color += noise;
-                
-                gl_FragColor = vec4(color, 1.0);
-            }
-        `,
-};
+    camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      200,
+    );
+    camera.position.z = CONFIG.cameraZ;
 
-const finalPass = new ShaderPass(outputShader);
-const composer = new EffectComposer(renderer);
-composer.addPass(renderScene);
-composer.addPass(bloomPass);
-composer.addPass(finalPass);
+    // 4. Post Processing
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.5,
+      0.4,
+      0.85,
+    );
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = 1.0;
+    bloomPass.radius = 0.8;
 
-// --- PARTICLE SYSTEM ---
-const particleVertexShader = `
+    const outputShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        uTime: { value: 0 },
+        uRGBShift: { value: 0.002 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float uTime;
+        uniform float uRGBShift;
+        varying vec2 vUv;
+        float random(vec2 p) {
+            return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+        void main() {
+            vec2 uv = vUv;
+            float dist = distance(uv, vec2(0.5));
+            vec2 offset = (uv - 0.5) * dist * uRGBShift;
+            float r = texture2D(tDiffuse, uv + offset).r;
+            float g = texture2D(tDiffuse, uv).g;
+            float b = texture2D(tDiffuse, uv - offset).b;
+            vec3 color = vec3(r, g, b);
+            float noise = (random(uv + uTime) - 0.5) * 0.04;
+            color += noise;
+            gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+    };
+
+    finalPass = new ShaderPass(outputShader);
+    composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+    composer.addPass(finalPass);
+
+    // 5. Particle System
+    const particleVertexShader = `
         uniform float uTime;
         uniform float uMode;
         uniform vec3 uHandLeft;
@@ -147,7 +152,6 @@ const particleVertexShader = `
         varying float vAlpha;
         varying float vDist;
 
-        // Simplex Noise
         vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
         vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
         vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
@@ -196,7 +200,6 @@ const particleVertexShader = `
             return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
         }
 
-        // --- Shapes ---
         vec3 getPosSphere(float idx) {
             float phi = acos( -1.0 + ( 2.0 * idx ) / ${CONFIG.particleCount}.0 );
             float theta = sqrt( ${CONFIG.particleCount}.0 * 3.1415926 ) * phi;
@@ -232,24 +235,20 @@ const particleVertexShader = `
             return vec3(r * cos(ang), r * sin(ang), h);
         }
 
-        // --- Blending ---
         vec3 blend(vec3 p1, vec3 p2, float t) {
             return mix(p1, p2, smoothstep(0.0, 1.0, t));
         }
 
         void main() {
-            // Slow fluid movement
             float t = uTime * 0.15; 
             vec3 pos = vec3(0.0);
             
-            // Mode Interpolation
             float m = uMode; 
             vec3 pSphere = getPosSphere(aIndex);
             vec3 pTorus = getPosTorus(aIndex);
             vec3 pLattice = getPosLattice(aIndex);
             vec3 pVortex = getPosVortex(aIndex);
 
-            // Add noise to base shapes for organic feel
             vec3 noiseBase = vec3(
                 snoise(vec3(aIndex*0.01, t*0.2, 0.0)),
                 snoise(vec3(aIndex*0.01, 0.0, t*0.2)),
@@ -261,33 +260,28 @@ const particleVertexShader = `
             pLattice += noiseBase * 1.5;
             pVortex += noiseBase * 2.0;
 
-            // Animate rotation for Torus
             float c = cos(t*0.3); float s = sin(t*0.3);
             pTorus.xy = mat2(c, -s, s, c) * pTorus.xy;
             pTorus.xz = mat2(c, -s, s, c) * pTorus.xz;
 
-            // Animate Vortex
             float va = t * 1.0 - length(pVortex.xy)*0.2;
             float vc = cos(va); float vs = sin(va);
             pVortex.xy = mat2(vc, -vs, vs, vc) * pVortex.xy;
 
-            // Mix based on mode
             if(m <= 0.0) pos = pSphere;
             else if(m <= 1.0) pos = mix(pSphere, pTorus, m);
             else if(m <= 2.0) pos = mix(pTorus, pLattice, m - 1.0);
             else if(m <= 3.0) pos = mix(pLattice, pVortex, m - 2.0);
             else pos = pVortex;
 
-            // Audio reactivity
             pos *= (1.0 + uAudio * 0.4);
 
-            // Hand Interaction (Soft Forces)
             if (uHandLeft.x > -90.0) {
                 float d = distance(pos, uHandLeft);
                 float influence = smoothstep(12.0, 0.0, d);
-                if (uHandLeftState < 0.0) { // Pinch - Pull
+                if (uHandLeftState < 0.0) { 
                     pos = mix(pos, uHandLeft, influence * 0.3); 
-                } else { // Open - Push/Displace
+                } else { 
                      pos += normalize(pos - uHandLeft) * influence * 8.0;
                 }
             }
@@ -295,9 +289,9 @@ const particleVertexShader = `
             if (uHandRight.x < 90.0) {
                 float d = distance(pos, uHandRight);
                 float influence = smoothstep(12.0, 0.0, d);
-                if (uHandRightState < 0.0) { // Pinch
+                if (uHandRightState < 0.0) {
                     pos = mix(pos, uHandRight, influence * 0.3);
-                } else { // Open
+                } else {
                     pos += normalize(pos - uHandRight) * influence * 8.0;
                 }
             }
@@ -305,8 +299,6 @@ const particleVertexShader = `
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_PointSize = (1.5 + aRandom.y * 2.0 + uAudio * 5.0) * (30.0 / -mvPosition.z);
             gl_Position = projectionMatrix * mvPosition;
-            
-            // Soft depth fade
             vDist = length(pos);
             float depthFade = smoothstep(60.0, 10.0, -mvPosition.z);
             vAlpha = depthFade * (0.2 + aRandom.z * 0.6);
@@ -314,347 +306,346 @@ const particleVertexShader = `
         }
     `;
 
-const particleFragmentShader = `
+    const particleFragmentShader = `
         uniform vec3 uColor1;
         uniform vec3 uColor2;
         varying vec3 vColor;
         varying float vAlpha;
         varying float vDist;
-
         void main() {
-            // Soft circular particle
             vec2 center = gl_PointCoord - 0.5;
             float dist = length(center);
             if (dist > 0.5) discard;
-            
             float glow = 1.0 - smoothstep(0.0, 0.5, dist);
-            glow = pow(glow, 1.5); // Soften edge
-
-            // Color gradient based on spatial position
+            glow = pow(glow, 1.5);
             vec3 col = mix(uColor1, uColor2, smoothstep(-20.0, 20.0, vColor.x + vColor.y));
-            
             gl_FragColor = vec4(col, vAlpha * glow);
         }
     `;
 
-// Geometry Setup
-const geometry = new THREE.BufferGeometry();
-const indices = new Float32Array(CONFIG.particleCount);
-const randoms = new Float32Array(CONFIG.particleCount * 3);
+    // 6. Config Particles
+    const geometry = new THREE.BufferGeometry();
+    const indices = new Float32Array(CONFIG.particleCount);
+    const randoms = new Float32Array(CONFIG.particleCount * 3);
+    for (let i = 0; i < CONFIG.particleCount; i++) {
+      indices[i] = i;
+      randoms[i * 3] = Math.random();
+      randoms[i * 3 + 1] = Math.random();
+      randoms[i * 3 + 2] = Math.random();
+    }
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(
+        new Float32Array(CONFIG.particleCount * 3).fill(0),
+        3,
+      ),
+    );
+    geometry.setAttribute("aIndex", new THREE.BufferAttribute(indices, 1));
+    geometry.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 3));
 
-for (let i = 0; i < CONFIG.particleCount; i++) {
-  indices[i] = i;
-  randoms[i * 3] = Math.random();
-  randoms[i * 3 + 1] = Math.random();
-  randoms[i * 3 + 2] = Math.random();
-}
+    palettes = [
+      { c1: new THREE.Color("#A855F7"), c2: new THREE.Color("#2dd4bf") },
+      { c1: new THREE.Color("#f472b6"), c2: new THREE.Color("#60a5fa") },
+      { c1: new THREE.Color("#fb923c"), c2: new THREE.Color("#e11d48") },
+    ];
 
-geometry.setAttribute(
-  "position",
-  new THREE.BufferAttribute(
-    new Float32Array(CONFIG.particleCount * 3).fill(0),
-    3,
-  ),
-);
-geometry.setAttribute("aIndex", new THREE.BufferAttribute(indices, 1));
-geometry.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 3));
-
-const palettes = [
-  { c1: new THREE.Color("#A855F7"), c2: new THREE.Color("#2dd4bf") }, // Bright Purple / Teal
-  { c1: new THREE.Color("#f472b6"), c2: new THREE.Color("#60a5fa") }, // Pink / Blue
-  { c1: new THREE.Color("#fb923c"), c2: new THREE.Color("#e11d48") }, // Orange / Rose
-];
-
-const material = new THREE.ShaderMaterial({
-  uniforms: {
-    uTime: { value: 0 },
-    uMode: { value: 0 },
-    uHandLeft: { value: new THREE.Vector3(-100, 0, 0) },
-    uHandRight: { value: new THREE.Vector3(100, 0, 0) },
-    uHandLeftState: { value: 0 },
-    uHandRightState: { value: 0 },
-    uAudio: { value: 0 },
-    uColor1: { value: palettes[0].c1 },
-    uColor2: { value: palettes[0].c2 },
-  },
-  vertexShader: particleVertexShader,
-  fragmentShader: particleFragmentShader,
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-
-const points = new THREE.Points(geometry, material);
-scene.add(points);
-
-// --- AUDIO SYSTEM ---
-let audioContext, analyser, dataArray;
-const setupAudio = async () => {
-  if (audioContext) return;
-  try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-    });
-    const source = audioContext.createMediaStreamSource(stream);
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 64;
-    analyser.smoothingTimeConstant = 0.8;
-    source.connect(analyser);
-    dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-    const btn = document.getElementById("btn-audio");
-    btn.classList.add("bg-white/10", "border-white/20");
-    btn.querySelector("i").classList.remove("text-white/60");
-    btn.querySelector("i").classList.add("text-emerald-400");
-  } catch (e) {
-    console.error("Audio denied", e);
-  }
-};
-
-// --- HAND TRACKING SYSTEM (Robust) ---
-const initHandTracking = async () => {
-  const btn = document.getElementById("btn-cam");
-  const videoElement = document.getElementById("input-video");
-
-  // Indicate loading
-  btn.querySelector("i").classList.add("animate-spin");
-
-  try {
-    // Initialize MediaPipe Hands
-    const hands = new window.Hands({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uMode: { value: 0 },
+        uHandLeft: { value: new THREE.Vector3(-100, 0, 0) },
+        uHandRight: { value: new THREE.Vector3(100, 0, 0) },
+        uHandLeftState: { value: 0 },
+        uHandRightState: { value: 0 },
+        uAudio: { value: 0 },
+        uColor1: { value: palettes[0].c1 },
+        uColor2: { value: palettes[0].c2 },
       },
+      vertexShader: particleVertexShader,
+      fragmentShader: particleFragmentShader,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
     });
 
-    hands.setOptions({
-      maxNumHands: 2,
-      modelComplexity: 1, // 0 for faster speed on mobile, 1 for accuracy
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+    console.log("✅ Particles created");
 
-    hands.onResults(onHandsResults);
+    // 7. HELPER FUNCTIONS
+    const setupAudio = async () => {
+      if (audioContext) return;
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        const source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 64;
+        analyser.smoothingTimeConstant = 0.8;
+        source.connect(analyser);
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-    // Initialize Camera Utils
-    const cam = new window.Camera(videoElement, {
-      onFrame: async () => {
-        await hands.send({ image: videoElement });
-      },
-      width: 640,
-      height: 480,
-    });
-
-    await cam.start();
-
-    // Success UI update
-    btn.querySelector("i").classList.remove("animate-spin");
-    btn.querySelector("i").classList.add("text-emerald-400", "text-white");
-    document
-      .getElementById("cam-active-indicator")
-      .classList.remove("opacity-0");
-  } catch (err) {
-    console.error("Camera Init Error:", err);
-    btn.querySelector("i").classList.remove("animate-spin");
-    alert("Could not access camera. Please allow permissions.");
-  }
-};
-
-function onHandsResults(results) {
-  STATE.hands.active = false;
-
-  // Reset if lost
-  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-    STATE.hands.left.target.set(-100, 0, 0);
-    STATE.hands.right.target.set(100, 0, 0);
-    document.getElementById("hand-status").classList.add("opacity-0");
-  } else {
-    STATE.hands.active = true;
-    document.getElementById("hand-status").classList.remove("opacity-0");
-
-    for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-      const landmarks = results.multiHandLandmarks[i];
-      const handedness = results.multiHandedness[i].label; // Left or Right
-
-      // Convert coords: MediaPipe (0,1) -> Three.js World Coords (approx)
-      // Inverting X because webcam is usually mirrored
-      const x = (0.5 - landmarks[9].x) * 50;
-      const y = (0.5 - landmarks[9].y) * 35;
-      const z = -landmarks[9].z * 30; // Depth estimation
-
-      // Detect Pinch
-      const thumbTip = landmarks[4];
-      const indexTip = landmarks[8];
-      const pinchDist = Math.sqrt(
-        Math.pow(thumbTip.x - indexTip.x, 2) +
-          Math.pow(thumbTip.y - indexTip.y, 2),
-      );
-
-      let state = 0;
-      if (pinchDist < 0.05)
-        state = -1.0; // Pinching
-      else state = 1.0; // Open hand
-
-      if (handedness === "Right") {
-        STATE.hands.right.target.set(x, y, z);
-        STATE.hands.right.state = state;
-      } else {
-        STATE.hands.left.target.set(x, y, z);
-        STATE.hands.left.state = state;
+        const btn = document.getElementById("btn-audio");
+        if (btn) {
+          btn.classList.add("bg-white/10", "border-white/20");
+          const icon = btn.querySelector("i");
+          if (icon) {
+            icon.classList.remove("text-white/60");
+            icon.classList.add("text-emerald-400");
+          }
+        }
+      } catch (e) {
+        console.error("Audio denied", e);
       }
+    };
+
+    const initHandTracking = async () => {
+      const btn = document.getElementById("btn-cam");
+      const videoElement = document.getElementById("input-video");
+
+      let icon;
+      if (btn) {
+        icon = btn.querySelector("i");
+        if (icon) icon.classList.add("animate-spin");
+      }
+
+      try {
+        const hands = new window.Hands({
+          locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+          },
+        });
+
+        hands.setOptions({
+          maxNumHands: 2,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        hands.onResults((results) => {
+          STATE.hands.active = false;
+          if (
+            !results.multiHandLandmarks ||
+            results.multiHandLandmarks.length === 0
+          ) {
+            STATE.hands.left.target.set(-100, 0, 0);
+            STATE.hands.right.target.set(100, 0, 0);
+            const hs = document.getElementById("hand-status");
+            if (hs) hs.classList.add("opacity-0");
+          } else {
+            STATE.hands.active = true;
+            const hs = document.getElementById("hand-status");
+            if (hs) hs.classList.remove("opacity-0");
+
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+              const landmarks = results.multiHandLandmarks[i];
+              const handedness = results.multiHandedness[i].label;
+              const x = (0.5 - landmarks[9].x) * 50;
+              const y = (0.5 - landmarks[9].y) * 35;
+              const z = -landmarks[9].z * 30;
+
+              // Pinch detection
+              const thumbTip = landmarks[4];
+              const indexTip = landmarks[8];
+              const pinchDist = Math.sqrt(
+                Math.pow(thumbTip.x - indexTip.x, 2) +
+                  Math.pow(thumbTip.y - indexTip.y, 2),
+              );
+              let state = pinchDist < 0.05 ? -1.0 : 1.0;
+
+              if (handedness === "Right") {
+                STATE.hands.right.target.set(x, y, z);
+                STATE.hands.right.state = state;
+              } else {
+                STATE.hands.left.target.set(x, y, z);
+                STATE.hands.left.state = state;
+              }
+            }
+          }
+        });
+
+        const cam = new window.Camera(videoElement, {
+          onFrame: async () => {
+            await hands.send({ image: videoElement });
+          },
+          width: 640,
+          height: 480,
+        });
+
+        await cam.start();
+
+        if (icon) {
+          icon.classList.remove("animate-spin");
+          icon.classList.add("text-emerald-400", "text-white");
+        }
+        const camInd = document.getElementById("cam-active-indicator");
+        if (camInd) camInd.classList.remove("opacity-0");
+      } catch (err) {
+        console.error("Camera Init Error:", err);
+        if (icon) icon.classList.remove("animate-spin");
+        alert("Could not access camera. Please allow permissions.");
+      }
+    };
+
+    // 8. EVENTS
+    container.addEventListener("click", () => {
+      const nextMode = (STATE.targetMode + 1) % 4;
+      window.setMode(nextMode);
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (STATE.hands.active) return;
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = -(e.clientY / window.innerHeight) * 2 + 1;
+      STATE.hands.right.target.set(x * 30, y * 20, 0);
+    });
+    window.addEventListener("resize", () => {
+      if (!camera || !renderer || !composer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const btnAudio = document.getElementById("btn-audio");
+    if (btnAudio) btnAudio.onclick = setupAudio;
+
+    const btnCam = document.getElementById("btn-cam");
+    if (btnCam) btnCam.onclick = initHandTracking;
+
+    const btnRec = document.getElementById("btn-rec");
+    if (btnRec) {
+      btnRec.onclick = () => {
+        renderer.render(scene, camera);
+        const link = document.createElement("a");
+        link.download = `aether-os-${Date.now()}.png`;
+        link.href = renderer.domElement.toDataURL("image/png");
+        link.click();
+      };
     }
-  }
-}
 
-// --- INTERACTION LOGIC ---
-window.setMode = (idx) => {
-  STATE.targetMode = idx;
-  document.querySelectorAll(".mode-btn").forEach((btn, i) => {
-    if (i === idx) {
-      btn.classList.add("active", "bg-white/10");
-      btn.classList.remove("bg-transparent");
-      btn.querySelector("span:first-child").classList.add("text-white");
-    } else {
-      btn.classList.remove("active", "bg-white/10");
-      btn.classList.add("bg-transparent");
-      btn.querySelector("span:first-child").classList.remove("text-white");
+    // 9. Other Systems
+    if (typeof lucide !== "undefined") lucide.createIcons();
+
+    // Config global helpers
+    window.setMode = (idx) => {
+      STATE.targetMode = idx;
+      const names = [
+        "NEBULA CLOUD",
+        "QUANTUM TORUS",
+        "CYBER LATTICE",
+        "WARP VORTEX",
+      ];
+      const el = document.getElementById("sim-mode");
+      if (el) el.innerText = names[idx];
+
+      // Update buttons
+      document.querySelectorAll(".mode-btn").forEach((btn, i) => {
+        if (i === idx) {
+          btn.classList.add("active", "bg-white/10");
+          btn.classList.remove("bg-transparent");
+          const span = btn.querySelector("span:first-child");
+          if (span) span.classList.add("text-white");
+        } else {
+          btn.classList.remove("active", "bg-white/10");
+          btn.classList.add("bg-transparent");
+          const span = btn.querySelector("span:first-child");
+          if (span) span.classList.remove("text-white");
+        }
+      });
+    };
+
+    // Initial Mode UI
+    window.setMode(0);
+
+    // Mobile Menu
+    const mmBtn = document.getElementById("mobile-menu-btn");
+    const mmMenu = document.getElementById("mobile-menu");
+    const mmClose = document.getElementById("mobile-menu-close");
+    if (mmBtn && mmMenu && mmClose) {
+      mmBtn.onclick = () => {
+        mmMenu.classList.add("is-open");
+        if (window.lucide) window.lucide.createIcons();
+      };
+      mmClose.onclick = () => mmMenu.classList.remove("is-open");
+      mmMenu.querySelectorAll("a").forEach((a) => {
+        a.onclick = () => mmMenu.classList.remove("is-open");
+      });
     }
-  });
-  const names = [
-    "NEBULA CLOUD",
-    "QUANTUM TORUS",
-    "CYBER LATTICE",
-    "WARP VORTEX",
-  ];
-  document.getElementById("sim-mode").innerText = names[idx];
-};
 
-window.cycleColor = (idx) => {
-  STATE.colorPalette = idx;
-  // Smooth color transition is handled in GSAP-like fashion in animate loop manually if needed,
-  // but here we just update uniforms, which is fast enough.
-  // For smoother transition we could lerp, but direct swap is responsive.
-};
+    // Stars
+    (function generateStars() {
+      const sf = document.getElementById("star-field");
+      if (!sf) return;
+      sf.innerHTML = "";
+      const count = isMobile ? 80 : 200;
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < count; i++) {
+        const s = document.createElement("div");
+        s.className = "star";
+        const size = Math.random() * 2.5 + 0.5;
+        const x = Math.random() * 100;
+        const y = Math.random() * 100;
+        const op = Math.random() * 0.6 + 0.1;
+        const dur = Math.random() * 4 + 3;
+        const del = Math.random() * 5;
+        const anim = Math.random() > 0.5 ? "twinkle" : "twinkle-slow";
+        s.style.cssText = `width:${size}px;height:${size}px;left:${x}%;top:${y}%;opacity:${op};animation:${anim} ${dur}s ${del}s ease-in-out infinite;box-shadow:0 0 ${size * 2}px rgba(255,255,255,${op * 0.5})`;
+        frag.appendChild(s);
+      }
+      sf.appendChild(frag);
+    })();
 
-// --- EVENTS ---
-document.getElementById("btn-audio").onclick = setupAudio;
-document.getElementById("btn-cam").onclick = initHandTracking;
-document.getElementById("btn-rec").onclick = () => {
-  renderer.render(scene, camera);
-  const link = document.createElement("a");
-  link.download = `aether-os-${Date.now()}.png`;
-  link.href = renderer.domElement.toDataURL("image/png");
-  link.click();
-};
+    // 10. Loop
+    clock = new THREE.Clock();
+    const animate = () => {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      STATE.time += delta;
 
-// Click to cycle modes
-document.getElementById("canvas-container").addEventListener("click", () => {
-  const nextMode = (STATE.targetMode + 1) % 4;
-  window.setMode(nextMode);
-});
+      // Mode Trans
+      STATE.mode += (STATE.targetMode - STATE.mode) * 0.05;
+      material.uniforms.uMode.value = STATE.mode;
+      material.uniforms.uTime.value = STATE.time;
+      finalPass.uniforms.uTime.value = STATE.time;
 
-// Mouse Fallback
-window.addEventListener("mousemove", (e) => {
-  if (STATE.hands.active) return;
-  const x = (e.clientX / window.innerWidth) * 2 - 1;
-  const y = -(e.clientY / window.innerHeight) * 2 + 1;
-  STATE.hands.right.target.set(x * 30, y * 20, 0);
-});
+      // Hands
+      const lerpFactor = 0.1;
+      STATE.hands.left.pos.lerp(STATE.hands.left.target, lerpFactor);
+      STATE.hands.right.pos.lerp(STATE.hands.right.target, lerpFactor);
+      material.uniforms.uHandLeft.value.copy(STATE.hands.left.pos);
+      material.uniforms.uHandRight.value.copy(STATE.hands.right.pos);
+      material.uniforms.uHandLeftState.value = STATE.hands.left.state;
+      material.uniforms.uHandRightState.value = STATE.hands.right.state;
 
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
+      // Colors
+      if (palettes && palettes[STATE.colorPalette]) {
+        material.uniforms.uColor1.value.lerp(
+          palettes[STATE.colorPalette].c1,
+          0.05,
+        );
+        material.uniforms.uColor2.value.lerp(
+          palettes[STATE.colorPalette].c2,
+          0.05,
+        );
+      }
 
-  CONFIG.cameraZ = window.innerWidth < 768 ? 40 : 28;
-});
+      // Sway
+      if (!STATE.hands.active) {
+        const zTarget = CONFIG.cameraZ + Math.sin(STATE.time * 0.5) * 2;
+        camera.position.z += (zTarget - camera.position.z) * 0.02;
+        camera.position.x = Math.sin(STATE.time * 0.2) * 2;
+        camera.position.y = Math.cos(STATE.time * 0.15) * 2;
+        camera.lookAt(0, 0, 0);
+      }
 
-// --- ANIMATION LOOP ---
-const clock = new THREE.Clock();
-lucide.createIcons();
-
-// --- GENERATE STAR FIELD ---
-(function generateStars() {
-  const starField = document.getElementById("star-field");
-  const starCount = isMobile ? 80 : 200;
-  const fragment = document.createDocumentFragment();
-  for (let i = 0; i < starCount; i++) {
-    const star = document.createElement("div");
-    star.className = "star";
-    const size = Math.random() * 2.5 + 0.5; // 0.5px to 3px
-    const x = Math.random() * 100;
-    const y = Math.random() * 100;
-    const opacity = Math.random() * 0.6 + 0.1;
-    const duration = Math.random() * 4 + 3; // 3s to 7s
-    const delay = Math.random() * 5;
-    const animName = Math.random() > 0.5 ? "twinkle" : "twinkle-slow";
-    star.style.cssText = `
-      width: ${size}px;
-      height: ${size}px;
-      left: ${x}%;
-      top: ${y}%;
-      opacity: ${opacity};
-      animation: ${animName} ${duration}s ${delay}s ease-in-out infinite;
-      box-shadow: 0 0 ${size * 2}px rgba(255,255,255,${opacity * 0.5});
-    `;
-    fragment.appendChild(star);
+      composer.render();
+    };
+    animate();
+    console.log("🚀 Animation Loop Started");
+  } catch (e) {
+    console.error("FATAL ERROR IN MAIN.JS:", e);
   }
-  starField.appendChild(fragment);
 })();
-
-function animate() {
-  requestAnimationFrame(animate);
-  const delta = clock.getDelta();
-  STATE.time += delta;
-
-  // Audio Level
-  if (analyser) {
-    analyser.getByteFrequencyData(dataArray);
-    const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-    STATE.audioLevel += (avg / 255 - STATE.audioLevel) * 0.1; // Smooth lerp
-    material.uniforms.uAudio.value = STATE.audioLevel;
-  }
-
-  // Mode Transition
-  if (Math.abs(STATE.mode - STATE.targetMode) > 0.001) {
-    STATE.mode += (STATE.targetMode - STATE.mode) * 0.05; // Smooth slide
-  } else {
-    STATE.mode = STATE.targetMode;
-  }
-  material.uniforms.uMode.value = STATE.mode;
-
-  // Update Time
-  material.uniforms.uTime.value = STATE.time;
-  finalPass.uniforms.uTime.value = STATE.time;
-
-  // Smooth Hand/Mouse Movement
-  const lerpFactor = 0.1;
-  STATE.hands.left.pos.lerp(STATE.hands.left.target, lerpFactor);
-  STATE.hands.right.pos.lerp(STATE.hands.right.target, lerpFactor);
-
-  material.uniforms.uHandLeft.value.copy(STATE.hands.left.pos);
-  material.uniforms.uHandRight.value.copy(STATE.hands.right.pos);
-  material.uniforms.uHandLeftState.value = STATE.hands.left.state;
-  material.uniforms.uHandRightState.value = STATE.hands.right.state;
-
-  // Color Smooth Transition
-  const targetC1 = palettes[STATE.colorPalette].c1;
-  const targetC2 = palettes[STATE.colorPalette].c2;
-  material.uniforms.uColor1.value.lerp(targetC1, 0.05);
-  material.uniforms.uColor2.value.lerp(targetC2, 0.05);
-
-  // Camera Sway (Subtle idle movement)
-  if (!STATE.hands.active) {
-    const zTarget = CONFIG.cameraZ + Math.sin(STATE.time * 0.5) * 2;
-    camera.position.z += (zTarget - camera.position.z) * 0.02;
-    camera.position.x = Math.sin(STATE.time * 0.2) * 2;
-    camera.position.y = Math.cos(STATE.time * 0.15) * 2;
-    camera.lookAt(0, 0, 0);
-  }
-
-  composer.render();
-}
-
-animate();
